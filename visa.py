@@ -11,6 +11,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 from sendgrid import SendGridAPIClient
@@ -23,6 +24,7 @@ config.read('config.ini')
 # pylint: disable=E1101
 # Personal Info:
 # Account and current appointment info from https://ais.usvisa-info.com
+IS_GROUP = config['PERSONAL_INFO']['IS_GROUP']
 USERNAME = config['PERSONAL_INFO']['USERNAME']
 PASSWORD = config['PERSONAL_INFO']['PASSWORD']
 # Find SCHEDULE_ID in re-schedule page link:
@@ -32,7 +34,7 @@ SCHEDULE_ID = config['PERSONAL_INFO']['SCHEDULE_ID']
 PRIOD_START = config['PERSONAL_INFO']['PRIOD_START']
 PRIOD_END = config['PERSONAL_INFO']['PRIOD_END']
 # Embassy Section:
-YOUR_EMBASSY = config['PERSONAL_INFO']['YOUR_EMBASSY'] 
+YOUR_EMBASSY = config['PERSONAL_INFO']['YOUR_EMBASSY']
 EMBASSY = Embassies[YOUR_EMBASSY][0]
 FACILITY_ID = Embassies[YOUR_EMBASSY][1]
 REGEX_CONTINUE = Embassies[YOUR_EMBASSY][2]
@@ -94,7 +96,7 @@ def send_notification(title, msg):
             print(response.body)
             print(response.headers)
         except Exception as e:
-            print(e.message)
+            print(e)
     if PUSHOVER_TOKEN:
         url = "https://api.pushover.net/1/messages.json"
         data = {
@@ -157,29 +159,36 @@ def start_process():
     print("\n\tlogin successful!\n")
 
 def reschedule(date):
-    time = get_time(date)
-    driver.get(APPOINTMENT_URL)
-    headers = {
-        "User-Agent": driver.execute_script("return navigator.userAgent;"),
-        "Referer": APPOINTMENT_URL,
-        "Cookie": "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
-    }
-    data = {
-        "utf8": driver.find_element(by=By.NAME, value='utf8').get_attribute('value'),
-        "authenticity_token": driver.find_element(by=By.NAME, value='authenticity_token').get_attribute('value'),
-        "confirmed_limit_message": driver.find_element(by=By.NAME, value='confirmed_limit_message').get_attribute('value'),
-        "use_consulate_appointment_capacity": driver.find_element(by=By.NAME, value='use_consulate_appointment_capacity').get_attribute('value'),
-        "appointments[consulate_appointment][facility_id]": FACILITY_ID,
-        "appointments[consulate_appointment][date]": date,
-        "appointments[consulate_appointment][time]": time,
-    }
-    r = requests.post(APPOINTMENT_URL, headers=headers, data=data)
+
+    try:
+        time = get_time(date)
+        driver.get(APPOINTMENT_URL)
+        headers = {
+            "User-Agent": driver.execute_script("return navigator.userAgent;"),
+            "Referer": APPOINTMENT_URL,
+            "Cookie": "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
+        }
+        data = {
+            # "utf8": driver.find_element(by=By.NAME, value='utf8').get_attribute('value'),
+            "authenticity_token": driver.find_element(by=By.NAME, value='authenticity_token').get_attribute('value'),
+            "confirmed_limit_message": driver.find_element(by=By.NAME, value='confirmed_limit_message').get_attribute('value'),
+            "use_consulate_appointment_capacity": driver.find_element(by=By.NAME, value='use_consulate_appointment_capacity').get_attribute('value'),
+            "appointments[consulate_appointment][facility_id]": FACILITY_ID,
+            "appointments[consulate_appointment][date]": date,
+            "appointments[consulate_appointment][time]": time,
+        }
+        r = requests.post(APPOINTMENT_URL, headers=headers, data=data)
+    except Exception as e:
+        print("\n")
+        print(e)
+
     if r.text.find('Successfully Scheduled') != -1:
         title = "SUCCESS"
         msg = f"Rescheduled Successfully! {date} {time}"
     else:
         title = "FAIL"
         msg = f"Reschedule Failed!!! {date} {time}"
+        print(str(r.status_code) + r.text)
     return [title, msg]
 
 
@@ -201,7 +210,7 @@ def get_time(date):
     return time
 
 def alert():
-    os.system('afplay /Users/burak.malkoc/Desktop/success.mp3')
+    os.system('afplay success.mp3')
 
 def is_logged_in():
     content = driver.page_source
@@ -217,7 +226,7 @@ def get_available_date(dates):
         result = ( PED > new_date and new_date > PSD )
         # print(f'{new_date.date()} : {result}', end=", ")
         return result
-    
+
     PED = datetime.strptime(PRIOD_END, "%Y-%m-%d")
     PSD = datetime.strptime(PRIOD_START, "%Y-%m-%d")
     for d in dates:
