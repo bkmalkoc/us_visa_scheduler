@@ -21,7 +21,7 @@ pip3 install webdriver-manager==3.8.6
 pip3 install sendgrid==6.9.7
 
 pip3 install selenium==4.18.1
-pip3 install webdriver-manager==4.0.1
+pip3 install webdriver-manager==4.0.2
 pip3 install requests==2.31.0
 pip3 install sendgrid==6.9.7
 

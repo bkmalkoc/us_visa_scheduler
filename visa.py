@@ -13,7 +13,9 @@ from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-
+from selenium.webdriver.chrome.service import Service as ChromiumService
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.os_manager import ChromeType
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
@@ -243,13 +245,15 @@ def info_logger(file_path, log):
 
 
 if LOCAL_USE:
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    driver = webdriver.Chrome(service=ChromiumService(ChromeDriverManager().install()))
 else:
     driver = webdriver.Remote(command_executor=HUB_ADDRESS, options=webdriver.ChromeOptions())
 
 
 if __name__ == "__main__":
     first_loop = True
+    exception_count = 0
+    MAX_RETRIES = 5
     while 1:
         LOG_FILE_NAME = "log_" + str(datetime.now().date()) + ".txt"
         if first_loop:
@@ -269,7 +273,7 @@ if __name__ == "__main__":
                 msg = f"List is empty, Probabely banned!\n\tSleep for {BAN_COOLDOWN_TIME} hours!\n"
                 print(msg)
                 info_logger(LOG_FILE_NAME, msg)
-                send_notification("BAN", msg)
+                # send_notification("BAN", msg)
                 driver.get(SIGN_OUT_LINK)
                 time.sleep(BAN_COOLDOWN_TIME * hour)
                 first_loop = True
@@ -307,11 +311,18 @@ if __name__ == "__main__":
                     print(msg)
                     info_logger(LOG_FILE_NAME, msg)
                     time.sleep(RETRY_WAIT_TIME)
-        except:
-            # Exception Occured
-            msg = f"Break the loop after exception!\n"
-            END_MSG_TITLE = "EXCEPTION"
-            break
+        except Exception as e:
+            exception_count += 1
+            msg = f"Exception occurred: {e.args}\nRetrying {exception_count}/{MAX_RETRIES}\n"
+            print(msg)
+            info_logger(LOG_FILE_NAME, msg)
+            if exception_count >= MAX_RETRIES:
+                msg = f"Max retries reached. Exiting...\n"
+                END_MSG_TITLE = "EXCEPTION"
+                break
+            else:
+                time.sleep(RETRY_WAIT_TIME)
+                continue
 
 print(msg)
 info_logger(LOG_FILE_NAME, msg)

@@ -2,6 +2,7 @@
 Embassies = {
     # [EMBASSY (COUNTRY CODE), FACILITY_ID (EMBASSY ID), "Continue in different languages"],
     "en-am-yer": ["en-tr", 125, "Continue"], # English - TR - Istanbul
+    "en-am-ank": ["en-tr", 124, "Continue"], # English - TR - Ankara
     "es-co-bog": ["es-co", 25, "Continuar"], # Spanish - Colombia - Bogotá
     "en-ca-cal": ["en-ca", 89, "Continue"], # English - Canada - Calgary
     "en-ca-hal": ["en-ca", 90, "Continue"], # English - Canada - Halifax
