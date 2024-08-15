@@ -165,6 +165,21 @@ def reschedule(date):
     try:
         time = get_time(date)
         driver.get(APPOINTMENT_URL)
+        # # Wait for the authenticity token to be available
+        # authenticity_token = WebDriverWait(driver, 4).until(
+        #     EC.presence_of_element_located((By.NAME, 'authenticity_token'))
+        # ).get_attribute('value')
+
+
+        if IS_GROUP :
+            continue_button_exists = len(driver.find_elements(By.XPATH,"//input[@type='submit' and @name='commit' and @value='Continue' and @class='button primary']")) > 0
+            if continue_button_exists:
+                continue_button = WebDriverWait(driver, 5).until(
+                    EC.element_to_be_clickable((By.XPATH,
+                                                "//input[@type='submit' and @name='commit' and @value='Continue' and @class='button primary']"))
+                )
+                continue_button.click()
+
         headers = {
             "User-Agent": driver.execute_script("return navigator.userAgent;"),
             "Referer": APPOINTMENT_URL,
